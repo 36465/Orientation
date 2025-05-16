@@ -1,110 +1,125 @@
-import React, { useState, useEffect } from 'react';
-import { Text, View, StyleSheet, Dimensions, Pressable, Button } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { View, StyleSheet, Button, Dimensions } from 'react-native';
 import { Video } from 'expo-av';
-import Constants from 'expo-constants';
 import * as ScreenOrientation from 'expo-screen-orientation';
 
-
-// You can import from local files
-
-// or any pure javascript modules available in npm
-import { Card } from 'react-native-paper';
-
 export default function App() {
-    const video = React.useRef(null);
-  const [number, setNumber] = useState(1);
-    const [status, setStatus] = React.useState({});
+    const video = useRef(null);
+    const [orientation, setOrientation] = useState(1);
+    const [status, setStatus] = useState({});
+    const [dimensions, setDimensions] = useState(Dimensions.get('window'));
 
-  const changenumber = () => {
-    if (number < 2) {
-      setNumber(number + 1);
-    } else {
-      setNumber(1);
-    }
-  };
+    useEffect(() => {
+        const subscription = Dimensions.addEventListener('change', ({ window }) => {
+            setDimensions(window);
+        });
+        return () => subscription?.remove();
+    }, []);
 
-  React.useEffect(() => {
-    if (number === 1) {
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-    }
-      else if (number === 2) {
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
-    } else {null}
-  }, [number]);
+    const toggleOrientation = () => {
+        setOrientation(prev => prev === 1 ? 2 : 1);
+    };
 
-  return (
-    <View style={styles.container}>
-      <Pressable onPress={() => changenumber()}>
-        <Text style={styles.paragraph3}>
-          Pressing this number ({number}) should change the Orientation.
-        </Text>
-      </Pressable>
-   
-      <View style={styles.container3}>
-        <Text style={styles.paragraph}>
-       This is a place where you could have a description of the video or some other information. Because the App is in "Portrait" the video can only use the width of the screen. Therefore there is a lot of left over space that can be used. 
-        </Text>
+    useEffect(() => {
+        if (orientation === 1) {
+            ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        } else {
+            ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
+        }
+    }, [orientation]);
+
+    const isLandscape = orientation === 1;
+    const buttonPanelWidth = 100;
+
+    return (
+        <View style={styles.container}>
+            {!isLandscape && (
+                <View style={styles.descriptionContainer}>
+                    <Button
+                        title="Video Description"
+                        color="#666"
+                    />
+                </View>
+            )}
+
+            <View style={isLandscape ? styles.landscapeContent : styles.portraitContent}>
+                <View style={isLandscape ? styles.landscapeVideoContainer : styles.portraitVideoContainer}>
+                    <Video
+                        ref={video}
+                        style={[
+                            styles.videoBase,
+                            {
+                                width: isLandscape 
+                                    ? dimensions.width - buttonPanelWidth
+                                    : dimensions.width,
+                                height: isLandscape
+                                    ? (dimensions.width - buttonPanelWidth) * (9/16)
+                                    : dimensions.width * (9/16)
+                            }
+                        ]}
+                        source={{
+                            uri: 'http://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4',
+                        }}
+                        useNativeControls
+                        resizeMode="contain"
+                        isLooping
+                        onPlaybackStatusUpdate={setStatus}
+                    />
+                </View>
+
+                <View style={isLandscape ? styles.landscapeButtons : styles.portraitButtons}>
+                    <Button
+                        title={status.isPlaying ? 'Pause' : 'Play'}
+                        onPress={() =>
+                            status.isPlaying ? video.current.pauseAsync() : video.current.playAsync()
+                        }
+                    />
+                    <Button
+                        title="Toggle"
+                        onPress={toggleOrientation}
+                    />
+                </View>
+            </View>
         </View>
-        <View style={styles.container3}>
-         <Video
-        ref={video}
-        style={styles.video}
-        source={{
-          uri: 'http://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4',
-        }}
-        useNativeControls
-        resizeMode="contain"
-        isLooping
-        onPlaybackStatusUpdate={status => setStatus(() => status)}
-      />
-    
-          <View style={styles.buttons}>
-        <Button
-          title={status.isPlaying ? 'Pause' : 'Play'}
-          onPress={() =>
-            status.isPlaying ? video.current.pauseAsync() : video.current.playAsync()
-          }
-        />
-      </View>
-      </View>
-      
-    </View>
-  );
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: '#ecf0f1',
-    padding: 8,
-  },
-      container3: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: '#FFF',
-    padding: 2,
-  },
-  paragraph: {
-    margin: 4,
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-    paragraph3: {
-    padding: 30,
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-    video: {
-    alignSelf: 'center',
-    width: 349,
-    height: 220,
-  },
-  buttons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#ecf0f1',
+    },
+    descriptionContainer: {
+        padding: 10,
+        backgroundColor: '#fff',
+    },
+    landscapeContent: {
+        flex: 1,
+        flexDirection: 'row',
+    },
+    portraitContent: {
+        flex: 1,
+    },
+    landscapeVideoContainer: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    portraitVideoContainer: {
+        width: '100%',
+        justifyContent: 'center',
+    },
+    videoBase: {
+        backgroundColor: '#000',
+    },
+    landscapeButtons: {
+        width: 100,
+        justifyContent: 'center',
+        padding: 10,
+    },
+    portraitButtons: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        padding: 10,
+        gap: 20,
+    },
 });
