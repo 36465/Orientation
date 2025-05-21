@@ -58,7 +58,7 @@ export default function App() {
                             }
                         ]}
                         source={{
-                            uri: 'http://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4',
+                            uri: 'https://videos.pexels.com/video-files/3121459/3121459-uhd_2560_1440_24fps.mp4',
                         }}
                         useNativeControls
                         resizeMode="contain"
